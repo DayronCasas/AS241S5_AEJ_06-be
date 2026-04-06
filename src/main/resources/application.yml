@@ -1,0 +1,25 @@
+server:
+  port: 8081
+
+spring:
+  data:
+    mongodb:
+      uri: mongodb+srv://dayron:I42QPrwdDkOu6oiv@dayroncasas.2sg7aie.mongodb.net/?appName=dayroncasas&retryWrites=true&w=majority&tls=true
+      database: dayroncasas
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+rapidapi:
+  key: f660811b55msh8e0aa7e996567f4p1271cdjsnb88d51ac6281
+  key-validect: 3ae0f32e7bmsh5f844a4658c7075p1466afjsn8f8e6c7b1a0f
+  shazam:
+    host: shazam-api-free.p.rapidapi.com
+    base-url: https://shazam-api-free.p.rapidapi.com
+  validect:
+    host: validect-email-verification-v1.p.rapidapi.com
+    base-url: https://validect-email-verification-v1.p.rapidapi.com
+
