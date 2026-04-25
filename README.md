@@ -51,3 +51,49 @@ Todas las credenciales están en `src/main/resources/application.yml`:
 ## Documentación
 
 Swagger UI disponible en: `http://localhost:8081/swagger-ui.html`
+
+## Kubernetes — Despliegue y Validación
+
+### Despliegue inicial
+
+```bash
+kubectl apply -f manifest-dayron-casas/dayron-casas-06-namespace.yml
+kubectl apply -f manifest-dayron-casas/dayron-casas-06-secret.yml
+kubectl apply -f manifest-dayron-casas/dayron-casas-06-service.yml
+kubectl apply -f manifest-dayron-casas/dayron-casas-06-deployment.yml
+```
+
+### Comprobar que todo está corriendo
+
+```bash
+kubectl get all -n dayron-casas
+```
+
+### Demostración de dependencia del Secret
+
+**1. Eliminar el secret y el deployment:**
+```bash
+kubectl delete -f manifest-dayron-casas/dayron-casas-06-secret.yml
+kubectl delete -f manifest-dayron-casas/dayron-casas-06-deployment.yml
+```
+
+**2. Volver a crear solo el deployment (sin el secret):**
+```bash
+kubectl apply -f manifest-dayron-casas/dayron-casas-06-deployment.yml
+```
+
+**3. Comprobar que el pod falla por falta del secret:**
+```bash
+kubectl get pods -n dayron-casas
+```
+El pod quedará en estado `CreateContainerConfigError` porque depende del secret para obtener las credenciales.
+
+### Restaurar todo al estado funcional
+
+```bash
+kubectl apply -f manifest-dayron-casas/dayron-casas-06-secret.yml
+kubectl rollout restart deployment/dayron-casas-deployment -n dayron-casas
+kubectl get pods -n dayron-casas
+```
+
+El pod volverá a estado `1/1 Running`.

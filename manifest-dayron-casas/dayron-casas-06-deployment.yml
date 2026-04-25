@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dayron-casas-deployment
+  namespace: dayron-casas
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dayron-casas
+  template:
+    metadata:
+      labels:
+        app: dayron-casas
+    spec:
+      containers:
+        - name: dayron-casas
+          image: dayroncasas/dayron-casas:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+          env:
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: dayron-casas-secret
+                  key: MONGODB_URI
+            - name: MONGODB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: dayron-casas-secret
+                  key: MONGODB_DATABASE
+            - name: RAPIDAPI_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dayron-casas-secret
+                  key: RAPIDAPI_KEY
+            - name: RAPIDAPI_KEY_VALIDECT
+              valueFrom:
+                secretKeyRef:
+                  name: dayron-casas-secret
+                  key: RAPIDAPI_KEY_VALIDECT
+            - name: SHAZAM_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: dayron-casas-secret
+                  key: SHAZAM_HOST
+            - name: SHAZAM_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: dayron-casas-secret
+                  key: SHAZAM_BASE_URL
+            - name: VALIDECT_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: dayron-casas-secret
+                  key: VALIDECT_HOST
+            - name: VALIDECT_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: dayron-casas-secret
+                  key: VALIDECT_BASE_URL
