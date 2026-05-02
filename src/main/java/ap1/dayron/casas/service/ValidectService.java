@@ -16,19 +16,85 @@ import java.util.Map;
 public class ValidectService {
 
     private final WebClient validectWebClient;
-    private final EmailVerificationRepository emailVerificationRepository;
+    private final EmailVerificationRepository repo;
 
     public ValidectService(@Qualifier("validectWebClient") WebClient validectWebClient,
-                           EmailVerificationRepository emailVerificationRepository) {
+                           EmailVerificationRepository repo) {
         this.validectWebClient = validectWebClient;
-        this.emailVerificationRepository = emailVerificationRepository;
+        this.repo = repo;
     }
 
-    /**
-     * Verifica el email via Validect, interpreta el resultado
-     * y lo guarda en MongoDB como historial.
-     */
+    // ── CREATE ───────────────────────────────────────────────────────────────
+
+    /** Llama a Validect API, guarda y retorna */
     public Mono<EmailVerification> verifyEmail(String email) {
+        return callValidect(email).flatMap(repo::save);
+    }
+
+    // ── READ ─────────────────────────────────────────────────────────────────
+
+    /** Lista todos los registros activos ordenados por número */
+    public Flux<EmailVerification> getHistory() {
+        return repo.findByDeletedFalseOrderByVerifiedAtDesc();
+    }
+
+    /** Busca un registro activo por ID */
+    public Mono<EmailVerification> findById(String id) {
+        return repo.findById(id)
+                .filter(e -> !e.isDeleted())
+                .switchIfEmpty(Mono.error(new RuntimeException("Registro no encontrado con id: " + id)));
+    }
+
+    // ── UPDATE ───────────────────────────────────────────────────────────────
+
+    /** Cambia el email, llama a Validect con el nuevo email y actualiza el registro */
+    public Mono<EmailVerification> updateEmail(String id, String newEmail) {
+        return repo.findById(id)
+                .filter(e -> !e.isDeleted())
+                .switchIfEmpty(Mono.error(new RuntimeException("Registro no encontrado con id: " + id)))
+                .flatMap(existing -> callValidect(newEmail)
+                        .map(updated -> {
+                            existing.setEmail(newEmail);
+                            existing.setValid(updated.isValid());
+                            existing.setStatus(updated.getStatus());
+                            existing.setReason(updated.getReason());
+                            existing.setVerifiedAt(updated.getVerifiedAt());
+                            return existing;
+                        }))
+                .flatMap(repo::save);
+    }
+
+    // ── DELETE (lógico) ──────────────────────────────────────────────────────
+
+    /** Marca el registro como eliminado sin borrarlo de la BD */
+    public Mono<EmailVerification> softDelete(String id) {
+        return repo.findById(id)
+                .filter(e -> !e.isDeleted())
+                .switchIfEmpty(Mono.error(new RuntimeException("Registro no encontrado con id: " + id)))
+                .flatMap(e -> {
+                    e.setDeleted(true);
+                    e.setDeletedAt(LocalDateTime.now());
+                    return repo.save(e);
+                });
+    }
+
+    // ── RESTORE ──────────────────────────────────────────────────────────────
+
+    /** Restaura un registro previamente eliminado */
+    public Mono<EmailVerification> restore(String id) {
+        return repo.findById(id)
+                .filter(EmailVerification::isDeleted)
+                .switchIfEmpty(Mono.error(new RuntimeException("Registro no encontrado o no está eliminado: " + id)))
+                .flatMap(e -> {
+                    e.setDeleted(false);
+                    e.setDeletedAt(null);
+                    return repo.save(e);
+                });
+    }
+
+    // ── HELPER ───────────────────────────────────────────────────────────────
+
+    private Mono<EmailVerification> callValidect(String email) {
         return validectWebClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/v1/verify")
@@ -36,44 +102,21 @@ public class ValidectService {
                         .build())
                 .retrieve()
                 .bodyToMono(Map.class)
-                .flatMap(response -> {
-                    String status = String.valueOf(response.getOrDefault("status", "unknown"));
-                    String reason = String.valueOf(response.getOrDefault("reason", ""));
-                    boolean isValid = "valid".equalsIgnoreCase(status);
-
-                    EmailVerification record = EmailVerification.builder()
+                .map(response -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> resp = (Map<String, Object>) response;
+                    String status = String.valueOf(resp.getOrDefault("status", "unknown"));
+                    String reason = String.valueOf(resp.getOrDefault("reason", ""));
+                    return EmailVerification.builder()
                             .email(email)
-                            .valid(isValid)
+                            .valid("valid".equalsIgnoreCase(status))
                             .status(status)
                             .reason(reason)
                             .verifiedAt(LocalDateTime.now())
                             .build();
-
-                    return emailVerificationRepository.save(record);
                 })
                 .onErrorResume(WebClientResponseException.class, ex ->
-                    Mono.error(new RuntimeException(
-                        "Validect API error " + ex.getStatusCode() + ": " + ex.getResponseBodyAsString(), ex))
-                );
-    }
-
-    /** Historial completo ordenado por fecha descendente */
-    public Flux<EmailVerification> getHistory() {
-        return emailVerificationRepository.findAllByOrderByVerifiedAtDesc();
-    }
-
-    /** Historial filtrado por email */
-    public Flux<EmailVerification> getHistoryByEmail(String email) {
-        return emailVerificationRepository.findByEmail(email);
-    }
-
-    /** Solo los correos válidos */
-    public Flux<EmailVerification> getValidEmails() {
-        return emailVerificationRepository.findByValid(true);
-    }
-
-    /** Solo los correos inválidos/falsos */
-    public Flux<EmailVerification> getInvalidEmails() {
-        return emailVerificationRepository.findByValid(false);
+                        Mono.error(new RuntimeException(
+                                "Validect API error " + ex.getStatusCode() + ": " + ex.getResponseBodyAsString(), ex)));
     }
 }

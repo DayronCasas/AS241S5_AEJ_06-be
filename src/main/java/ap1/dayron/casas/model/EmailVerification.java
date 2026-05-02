@@ -23,4 +23,8 @@ public class EmailVerification {
     private String status;
     private String reason;
     private LocalDateTime verifiedAt;
+
+    @Builder.Default
+    private boolean deleted = false;
+    private LocalDateTime deletedAt;
 }

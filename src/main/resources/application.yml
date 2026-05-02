@@ -16,9 +16,10 @@ springdoc:
 rapidapi:
   key: ${RAPIDAPI_KEY:f660811b55msh8e0aa7e996567f4p1271cdjsnb88d51ac6281}
   key-validect: ${RAPIDAPI_KEY_VALIDECT:3ae0f32e7bmsh5f844a4658c7075p1466afjsn8f8e6c7b1a0f}
-  shazam:
-    host: ${SHAZAM_HOST:shazam-api-free.p.rapidapi.com}
-    base-url: ${SHAZAM_BASE_URL:https://shazam-api-free.p.rapidapi.com}
+  key-translator: ${RAPIDAPI_KEY_TRANSLATOR:3ae0f32e7bmsh5f844a4658c7075p1466afjsn8f8e6c7b1a0f}
+  translator:
+    host: ${TRANSLATOR_HOST:free-google-translator.p.rapidapi.com}
+    base-url: ${TRANSLATOR_BASE_URL:https://free-google-translator.p.rapidapi.com}
   validect:
     host: ${VALIDECT_HOST:validect-email-verification-v1.p.rapidapi.com}
     base-url: ${VALIDECT_BASE_URL:https://validect-email-verification-v1.p.rapidapi.com}

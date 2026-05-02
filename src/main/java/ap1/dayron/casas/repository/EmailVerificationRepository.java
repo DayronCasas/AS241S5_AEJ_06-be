@@ -8,9 +8,7 @@ import reactor.core.publisher.Flux;
 @Repository
 public interface EmailVerificationRepository extends ReactiveMongoRepository<EmailVerification, String> {
 
-    Flux<EmailVerification> findByEmail(String email);
+    Flux<EmailVerification> findByDeletedFalseOrderByVerifiedAtDesc();
 
-    Flux<EmailVerification> findByValid(boolean valid);
-
-    Flux<EmailVerification> findAllByOrderByVerifiedAtDesc();
+    Flux<EmailVerification> findByDeletedTrue();
 }

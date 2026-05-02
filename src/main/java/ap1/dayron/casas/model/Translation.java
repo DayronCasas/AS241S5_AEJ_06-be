@@ -13,15 +13,18 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "song_recognitions")
-public class SongRecognition {
+@Document(collection = "translations")
+public class Translation {
 
     @Id
     private String id;
-    private String title;
-    private String artist;
-    private String album;
-    private String genre;
-    private String coverUrl;
-    private LocalDateTime recognizedAt;
+    private String originalText;
+    private String translatedText;
+    private String fromLanguage;
+    private String toLanguage;
+    private LocalDateTime translatedAt;
+
+    @Builder.Default
+    private boolean deleted = false;
+    private LocalDateTime deletedAt;
 }
