@@ -34,11 +34,15 @@ jobs:
           distribution: temurin
           cache: maven
 
+      - name: Grant execute permission for mvnw
+        run: chmod +x mvnw
+
       - name: Build with Maven (skip tests for speed)
         run: ./mvnw clean package -DskipTests
 
       - name: Run tests
         run: ./mvnw test
+
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           MONGODB_DATABASE: ${{ secrets.MONGODB_DATABASE }}
