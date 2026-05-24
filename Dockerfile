@@ -1,5 +1,7 @@
 # ── Stage 1: Build ──────────────────────────────────────────────────────────
-FROM eclipse-temurin:17-jdk-alpine AS builder
+# Chainguard JDK: imagen minimal con 0 CVEs para compilar
+FROM cgr.dev/chainguard/jdk:latest AS builder
+USER root
 WORKDIR /app
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
@@ -7,8 +9,9 @@ RUN chmod +x mvnw && ./mvnw dependency:go-offline -q
 COPY src/ src/
 RUN ./mvnw clean package -DskipTests -q
 
-# ── Stage 2: Runtime (distroless — sin shell, sin package manager) ───────────
-FROM gcr.io/distroless/java17-debian12:nonroot
+# ── Stage 2: Runtime ─────────────────────────────────────────────────────────
+# Chainguard JRE: imagen distroless con 0 CVEs, usuario no-root (65532)
+FROM cgr.dev/chainguard/jre:latest
 WORKDIR /app
 COPY --from=builder /app/target/dayron.casas-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8081
