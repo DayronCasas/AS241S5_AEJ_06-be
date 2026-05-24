@@ -1,0 +1,118 @@
+name: Trivy Security Scan
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  schedule:
+    # Escaneo automático diario a las 02:00 UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '17'
+  IMAGE_NAME: dayron-casas-scan
+
+jobs:
+  # ─────────────────────────────────────────────
+  # JOB 1: Trivy - Escaneo de filesystem (código fuente y dependencias)
+  # ─────────────────────────────────────────────
+  trivy-filesystem:
+    name: Trivy Scan - Filesystem
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem (UNKNOWN, LOW, MEDIUM) — exit-code 0
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: UNKNOWN,LOW,MEDIUM
+          exit-code: '0'
+          format: table
+
+      - name: Run Trivy filesystem (HIGH, CRITICAL) — exit-code 1
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          format: table
+
+  # ─────────────────────────────────────────────
+  # JOB 2: Trivy - Escaneo de imagen Docker (distroless multi-stage)
+  # ─────────────────────────────────────────────
+  trivy-image:
+    name: Trivy Scan - Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (multi-stage distroless)
+        run: docker build -t ${{ env.IMAGE_NAME }}:latest .
+
+      - name: Run Trivy image (UNKNOWN, LOW, MEDIUM) — exit-code 0
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.IMAGE_NAME }}:latest
+          severity: UNKNOWN,LOW,MEDIUM
+          exit-code: '0'
+          format: table
+
+      - name: Run Trivy image (HIGH, CRITICAL) — exit-code 1
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.IMAGE_NAME }}:latest
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          format: table
+
+  # ─────────────────────────────────────────────
+  # JOB 3: Trivy - Reporte SARIF completo (todas las severidades)
+  # ─────────────────────────────────────────────
+  trivy-report:
+    name: Trivy Full Report (SARIF)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (multi-stage distroless)
+        run: docker build -t ${{ env.IMAGE_NAME }}:latest .
+
+      - name: Run Trivy — reporte completo SARIF (todas las severidades)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.IMAGE_NAME }}:latest
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          exit-code: '0'
+          format: sarif
+          output: trivy-results.sarif
+
+      - name: Upload SARIF report to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
