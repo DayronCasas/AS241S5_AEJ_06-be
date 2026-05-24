@@ -42,12 +42,11 @@ jobs:
 
       - name: Run tests
         run: ./mvnw test
-
         env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          MONGODB_DATABASE: ${{ secrets.MONGODB_DATABASE }}
-          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
-          RAPIDAPI_KEY_VALIDECT: ${{ secrets.RAPIDAPI_KEY_VALIDECT }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/test' }}
+          MONGODB_DATABASE: ${{ secrets.MONGODB_DATABASE || 'test' }}
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY || 'dummy' }}
+          RAPIDAPI_KEY_VALIDECT: ${{ secrets.RAPIDAPI_KEY_VALIDECT || 'dummy' }}
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
