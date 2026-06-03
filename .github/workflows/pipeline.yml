@@ -127,14 +127,23 @@ jobs:
           distribution: temurin
           cache: maven
 
-      # 3. Instalar Snyk CLI
+      # 3. Dar permisos al wrapper de Maven
+      - name: Grant execute permission for mvnw
+        run: chmod +x mvnw
+
+      # 4. Build del proyecto para que Snyk pueda resolver dependencias
+      - name: Build with Maven
+        run: ./mvnw clean package -DskipTests
+
+      # 5. Instalar Snyk CLI
       - name: Install Snyk CLI
         run: npm install -g snyk
 
-      # 4. Autenticar con Snyk
+      # 6. Autenticar con Snyk
       - name: Authenticate Snyk
         run: snyk auth ${{ secrets.SNYK_TOKEN }}
 
-      # 5. Monitorear proyecto en Snyk Dashboard (solo en push)
+      # 7. Monitorear proyecto en Snyk Dashboard (solo en push)
       - name: Snyk Monitor - Track project
         run: snyk monitor --file=pom.xml --package-manager=maven --project-name=AS241S5_AEJ_06-be
+        continue-on-error: true
