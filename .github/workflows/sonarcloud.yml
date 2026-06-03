@@ -1,0 +1,77 @@
+name: SonarCloud - Code Quality Analysis
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+  schedule:
+    # Análisis automático todos los días a las 8:00 AM hora Perú (UTC-5) → 1:00 PM UTC
+    - cron: '0 13 * * *'
+  workflow_dispatch: # Permite ejecución manual desde GitHub Actions UI
+
+env:
+  JAVA_VERSION: '17'
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout del código con historial completo (necesario para blame de SonarCloud)
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2. Configurar Java 17
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+
+      # 3. Dar permisos al wrapper de Maven
+      - name: Grant execute permission for mvnw
+        run: chmod +x mvnw
+
+      # 4. Cache de paquetes de SonarCloud para acelerar análisis
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      # 5. Build + análisis de SonarCloud en un solo paso
+      - name: Build and analyze with SonarCloud
+        run: |
+          ./mvnw clean verify sonar:sonar \
+            -Dsonar.projectKey=DayronCasas_AS241S5_AEJ_06-be \
+            -Dsonar.organization=dayroncasas \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
+            -Dsonar.java.source=17 \
+            -DskipTests=false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/test' }}
+          MONGODB_DATABASE: ${{ secrets.MONGODB_DATABASE || 'test' }}
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY || 'dummy' }}
+          RAPIDAPI_KEY_VALIDECT: ${{ secrets.RAPIDAPI_KEY_VALIDECT || 'dummy' }}
+
+      # 6. Subir reportes de cobertura como artefacto (opcional, para revisión)
+      - name: Upload test coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: target/site/jacoco/
+          retention-days: 7
